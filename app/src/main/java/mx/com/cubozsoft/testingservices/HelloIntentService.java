@@ -1,28 +1,35 @@
 package mx.com.cubozsoft.testingservices;
 
 import android.app.IntentService;
+import android.content.Context;
+import android.content.ContextWrapper;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
-import android.text.format.Time;
+import android.os.Environment;
 import android.util.Log;
-import android.widget.Toast;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
 
 /**
  * Created by carlos on 27/06/16.
- */ class HelloIntentService extends IntentService {
+ */ public class HelloIntentService extends IntentService {
 
     static final String BRADCAST_ACTION = "mx.com.cubozsoft.testingservices.resoult";
+    static final String GETCONTEXT = "contextget";
+    static Context mContextWraper = null;
 
     HelloIntentService() {
         super("HelloIntentService");
@@ -30,7 +37,7 @@ import java.net.URL;
 
     @Override
     protected void onHandleIntent(Intent intent) {
-
+        mContextWraper = new ContextWrapper(getApplicationContext());
         // These two need to be declared outside the try/catch
         // so that they can be closed in the finally block.
         HttpURLConnection urlConnection = null;
@@ -77,9 +84,11 @@ import java.net.URL;
             personJsonStr = buffer.toString();
 
 //            return getWeatherDataFromJson(personJsonStr, num_days);
-
+            Person obj = getPersonDataFromJson(personJsonStr);
             Intent bIntent = new Intent(BRADCAST_ACTION);
-            bIntent.putExtra(Person.DATAPARCELABLE,getPersonDataFromJson(personJsonStr));
+            bIntent.putExtra(Person.DATAPARCELABLE,obj);
+            downloadBitmap(new URL(Uri.parse(obj.getUrlImg()).toString()),obj.getIdPicture());
+
             sendBroadcast(bIntent);
 
         } catch (IOException e) {
@@ -128,7 +137,7 @@ import java.net.URL;
         String address;
         String email;
         String phone;
-        int idPicture;
+        String idPicture;
         String urlPicture;
 
 
@@ -154,14 +163,63 @@ import java.net.URL;
         JSONObject picturePersonJson = personJson.getJSONObject(OWM_PICTURE);
         urlPicture = picturePersonJson.getString(OWM_PICTURE_MED);
 
-        idPicture = getIdPicture(urlPicture);
+        idPicture = getIdPicture(name);
 
 
-        return new Person(email,address,idPicture,name,phone);
+        return new Person(email,address,idPicture,name,phone, urlPicture );
 
     }
 
-    private int getIdPicture(String url) {
-        return -1;
+    private String getIdPicture(String name) {
+        return name.replace(" ","");
+    }
+
+    private Bitmap downloadBitmap(URL url, String name)  {
+        File extStorageDirectory = mContextWraper.getFilesDir();
+
+        FileOutputStream out = null;
+        HttpURLConnection client = null;
+        //forming a HttoGet request
+        try {
+            File file = new File(extStorageDirectory, name + ".png");
+            if (file.exists()) {
+                file.delete();
+                file = new File(extStorageDirectory, name + ".png");
+                Log.e("file exist", "" + file + ",Bitmap= " + name);
+            }
+            // initilize the default HTTP client object
+            client = (HttpURLConnection) url.openConnection();
+            client.setRequestMethod("GET");
+            client.connect();
+
+            InputStream inputStream = client.getInputStream();
+
+            Bitmap myBitmap = BitmapFactory.decodeStream(inputStream);
+
+            out = mContextWraper.openFileOutput(file.getName(),Context.MODE_PRIVATE);
+            myBitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
+            Log.e("file exist", "" + file.getAbsolutePath());
+
+        } catch (Exception e) {
+            Log.e("error:", e.toString());
+        } finally {
+            try {
+                if (out != null) {
+                    out.close();
+                }
+                if (client != null) {
+                    client.disconnect();
+                }
+                if(out != null)
+                {
+                    out.flush();
+                    out.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        return null;
     }
 }

@@ -13,14 +13,16 @@ public class Person implements Parcelable{
     private String address;
     private String email;
     private String phone;
-    private int idPicture;
+    private String urlImg;
+    private String idPicture;
 
-    public Person(String email, String address, int idPicture, String name, String phone) {
+    public Person(String email, String address, String idPicture, String name, String phone, String urlImg) {
         this.email = email;
         this.address = address;
         this.idPicture = idPicture;
         this.name = name;
         this.phone = phone;
+        this. urlImg = urlImg;
     }
 
 
@@ -29,7 +31,8 @@ public class Person implements Parcelable{
         address = in.readString();
         email = in.readString();
         phone = in.readString();
-        idPicture = in.readInt();
+        idPicture = in.readString();
+        urlImg = in.readString();
     }
 
     public static final Creator<Person> CREATOR = new Creator<Person>() {
@@ -60,7 +63,7 @@ public class Person implements Parcelable{
         return phone;
     }
 
-    public int getIdPicture() {
+    public String getIdPicture() {
         return idPicture;
     }
 
@@ -75,6 +78,12 @@ public class Person implements Parcelable{
         dest.writeString(address);
         dest.writeString(email);
         dest.writeString(phone);
-        dest.writeInt(idPicture);
+        dest.writeString(idPicture);
+        dest.writeString(urlImg);
+
+    }
+
+    public String getUrlImg() {
+        return urlImg;
     }
 }
